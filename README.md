@@ -33,6 +33,8 @@ firebase deploy --only hosting --project foliomotion-web
 
 This deploys the studio site only; it does not deploy Firestore or Storage rules. The landing page has its own Firebase Hosting site and deployment instructions in its [repository](https://github.com/zhephirothz/foliomotion-landing).
 
+The studio build supports a configurable Vite base path. Standalone builds use `/`; the landing repository builds a second copy with `VITE_BASE_PATH=/studio/` so it can serve the app at `foliomotion.app/studio` on the same origin.
+
 ### Common commands
 
 ```sh
