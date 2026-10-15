@@ -10,7 +10,7 @@ Updated 16 October 2026. The product no longer has accounts, a guest tier, a pro
 - Clearing the browser's site data deletes the local workspace. Browser storage quotas vary by browser and device; this is local software storage, not a hosted backup.
 - Screenshot upload remains limited to PNG/JPEG/WebP, 20 MB per file, and ten screenshots per project. These are editor/media limits, not account tiers.
 - AI API keys remain in the local gateway's memory as described in [Optional AI](06-optional-ai.md). They are not saved with local projects.
-- Public publishing and shared portfolio URLs are still unimplemented. The site has not been deployed.
+- The app is deployed as a static site at [https://foliomotion-web.web.app](https://foliomotion-web.web.app). Project content and screenshots still stay in each visitor's browser; deployment does not add shared portfolio URLs or cross-device sync.
 
 ## Implementation map
 
@@ -29,7 +29,7 @@ Firebase Authentication, Firestore, and Cloud Storage code has been removed from
 
 The prior browser verification restored two projects and their screenshot attachments from the Firebase account workspace. Those cloud projects are not automatically imported into the new browser-local workspace, and this app no longer has a sign-in screen or cloud-save path. The data remains in Firebase under the existing private owner-only rules. Do not delete or loosen those rules/buckets as part of local workspace changes. A deliberate account-data export/import tool would be needed to move that work into IndexedDB.
 
-Firebase Hosting configuration remains available for serving the static app. Static Hosting does not provide cross-device project sync or a production AI gateway. The local AI gateway still requires the Vite app server; hosted AI needs a separate server-side implementation before it can work on a deployed static site.
+Firebase Hosting serves the static studio from the existing `foliomotion-web` site. The separate introductory website is deployed from [foliomotion-landing](https://github.com/zhephirothz/foliomotion-landing) to `foliomotion-landing.web.app`. Static Hosting does not provide cross-device project sync or a production AI gateway. The hosted studio detects that its local gateway is unavailable and points visitors to run the app locally for AI headline assistance.
 
 ## Verification
 

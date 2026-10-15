@@ -22,6 +22,17 @@ bun run dev
 
 Open the local URL printed by Vite, usually `http://localhost:5173`, to use the studio. Leave the `bun run dev` process running while using the app, especially when generating AI headlines. The introductory landing page is maintained separately in [foliomotion-landing](https://github.com/zhephirothz/foliomotion-landing).
 
+## Firebase Hosting
+
+The studio is live at [foliomotion-web.web.app](https://foliomotion-web.web.app). After authenticating with `firebase login`, build and deploy only Hosting from this repository:
+
+```sh
+bun run build
+firebase deploy --only hosting --project foliomotion-web
+```
+
+This deploys the studio site only; it does not deploy Firestore or Storage rules. The landing page has its own Firebase Hosting site and deployment instructions in its [repository](https://github.com/zhephirothz/foliomotion-landing).
+
 ### Common commands
 
 ```sh
