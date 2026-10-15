@@ -549,6 +549,11 @@ button, a, input, textarea, select { -webkit-tap-highlight-color: transparent; }
 .settings-title h1 { font: 650 42px/1.15 var(--display); letter-spacing: -.04em; margin: 14px 0; }
 .settings-title p, .settings-explainer { color: var(--muted); font-size: 16px; line-height: 1.65; }
 .settings-explainer { padding: 20px; border-radius: 14px; background: #eaf1de; margin: 24px 0; }
+.ai-hosted-note { display: flex; gap: 12px; margin: -8px 0 24px; padding: 18px 20px; border: 1px solid #e3d6ab; border-radius: 14px; background: #fff8df; color: #534a31; }
+.ai-hosted-note::before { content: 'i'; display: grid; place-items: center; flex: none; width: 24px; height: 24px; border-radius: 50%; background: #f0e3b7; color: #665322; font: 600 14px var(--display); }
+.ai-hosted-note p { margin: 0; font-size: 14px; line-height: 1.7; }
+.ai-hosted-note a { color: #435a2e; font-weight: 700; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+.ai-hosted-note code { padding: 2px 5px; border-radius: 4px; background: #f1ebd4; font: 12px var(--mono); }
 .connection-list { display: grid; gap: 24px; margin-bottom: 24px; }
 .connection-card { padding: 28px; background: white; border: 1px solid var(--line); border-radius: 20px; }
 .connection-card header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 24px; }

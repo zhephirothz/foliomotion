@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { aiError, connectProvider, disconnectProvider, isApiKeyProvider, providerDefaults, type AIConnection, type AIProviderKind } from '../aiProviders';
 import { getTranslation, type Language, type TranslationKey } from '../i18n';
 
@@ -14,8 +14,29 @@ export function AISettings({ connections, onChange, sessions, onSession, lang = 
   const [keys, setKeys] = useState<Record<string, string>>({});
   const [status, setStatus] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<string | null>(null);
+  const [gatewayAvailable, setGatewayAvailable] = useState<boolean | null>(null);
 
   const t = (key: TranslationKey, params?: Record<string, string | number>) => getTranslation(lang, key, params);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    let active = true;
+    const timeout = window.setTimeout(() => controller.abort(), 3000);
+    fetch('/api/ai/status', { cache: 'no-store', signal: controller.signal })
+      .then(async (response) => {
+        if (!response.ok || !response.headers.get('content-type')?.includes('application/json')) return false;
+        const result = await response.json();
+        return result.available === true;
+      })
+      .then((available) => { if (active) setGatewayAvailable(available); })
+      .catch(() => { if (active) setGatewayAvailable(false); })
+      .finally(() => window.clearTimeout(timeout));
+    return () => {
+      active = false;
+      window.clearTimeout(timeout);
+      controller.abort();
+    };
+  }, []);
 
   function edit(id: string, patch: Partial<AIConnection>) {
     void disconnectProvider(sessions[id]);
@@ -57,6 +78,15 @@ export function AISettings({ connections, onChange, sessions, onSession, lang = 
         <p>{t('settingsSubtitle')}</p>
       </div>
       <div className="settings-explainer">{t('settingsExplainer')}</div>
+      {gatewayAvailable === false && (
+        <aside className="ai-hosted-note" role="status">
+          <p>
+            Want AI Headline Assistance or custom video layouts?{' '}
+            <a href="https://github.com/zhephirothz/foliomotion" target="_blank" rel="noreferrer">Clone Folio Motion on GitHub</a>{' '}
+            and run <code>bun run dev</code> locally to connect Ollama, LM Studio, or your own API keys.
+          </p>
+        </aside>
+      )}
       <div className="connection-list">
         {connections.map((connection) => (
           <section className="connection-card" key={connection.id}>

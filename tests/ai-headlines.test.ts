@@ -17,6 +17,21 @@ test('local connection rejects remote URLs and embedded credentials', () => {
   assert.throws(() => localEndpoint({ ...base, endpoint: 'http://user:pass@localhost:1234' }, '/models'));
 });
 
+test('local AI gateway status endpoint confirms the Bun server is available', async () => {
+  let handler: any;
+  const plugin = aiGateway();
+  (plugin.configureServer as Function)({ middlewares: { use(fn: unknown) { handler = fn; } } });
+  let status = 0;
+  let output: any;
+  await handler(
+    { url: '/api/ai/status', method: 'GET', headers: { host: 'localhost:5173', origin: 'http://localhost:5173' }, async *[Symbol.asyncIterator]() {} },
+    { writeHead(code: number) { status = code; }, end(value: string) { output = JSON.parse(value); } },
+    () => { throw new Error('unexpected fallback'); }
+  );
+  assert.equal(status, 200);
+  assert.deepEqual(output, { available: true });
+});
+
 test('local generation sends only the selected slide facts and returns reviewable suggestions', async (t) => {
   const original = globalThis.fetch;
   let requestBody: any;

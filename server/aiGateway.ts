@@ -24,6 +24,7 @@ export function aiGateway(): Plugin {
       const host = new URL(`http://${req.headers.host}`).hostname;
       const origin = req.headers.origin ? new URL(req.headers.origin) : null;
       if (!['localhost', '127.0.0.1', '[::1]'].includes(host) || (origin && origin.host !== req.headers.host)) return send(res, 403, { error: 'AI settings are available only from this local app.' });
+      if (req.url === '/api/ai/status' && req.method === 'GET') return send(res, 200, { available: true });
       if (req.method !== 'POST' || !req.headers['content-type']?.startsWith('application/json')) return send(res, 405, { error: 'Use a JSON POST request.' });
       for (const [token, session] of sessions) if (session.expires < Date.now()) sessions.delete(token);
       let raw = '';
