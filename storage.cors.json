@@ -1,0 +1,28 @@
+[
+  {
+    "origin": [
+      "https://foliomotion-web.web.app",
+      "https://foliomotion-web.firebaseapp.com",
+      "http://localhost:5173",
+      "http://localhost:5174",
+      "http://127.0.0.1:5173",
+      "http://127.0.0.1:5174"
+    ],
+    "method": ["GET", "HEAD", "POST", "PUT", "DELETE"],
+    "responseHeader": [
+      "Authorization",
+      "Content-Type",
+      "Range",
+      "X-Firebase-Storage-Version",
+      "X-Firebase-Storage-XSRF",
+      "X-Firebase-AppCheck",
+      "X-Firebase-GMPID",
+      "X-Goog-AuthUser",
+      "X-Goog-Upload-Command",
+      "X-Goog-Upload-Header-Content-Length",
+      "X-Goog-Upload-Header-Content-Type",
+      "X-Goog-Upload-Protocol"
+    ],
+    "maxAgeSeconds": 3600
+  }
+]

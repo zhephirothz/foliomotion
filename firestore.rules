@@ -1,0 +1,33 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function owner(uid) { return request.auth != null && request.auth.uid == uid && request.auth.token.firebase.sign_in_provider != 'anonymous'; }
+    match /users/{uid}/projects/{projectId} {
+      allow read, delete: if owner(uid);
+      allow create, update: if owner(uid)
+        && request.resource.data.keys().hasOnly(['project', 'updatedAt'])
+        && request.resource.data.project is map
+        && request.resource.data.project.keys().hasOnly(['name','headline','summary','role','category','screenshots','aiEnabled','aiConnectionId'])
+        && request.resource.data.project.name is string
+        && request.resource.data.project.name.size() <= 100
+        && request.resource.data.project.headline is string
+        && request.resource.data.project.headline.size() <= 84
+        && request.resource.data.project.summary is string
+        && request.resource.data.project.summary.size() <= 2000
+        && request.resource.data.project.role is string
+        && request.resource.data.project.role.size() <= 100
+        && request.resource.data.project.category is string
+        && request.resource.data.project.screenshots is list
+        && request.resource.data.project.screenshots.size() <= 10
+        && request.resource.data.updatedAt is number;
+    }
+    match /users/{uid}/settings/workspace {
+      allow read: if owner(uid);
+      allow write: if owner(uid)
+        && request.resource.data.keys().hasOnly(['categories'])
+        && request.resource.data.categories is list
+        && request.resource.data.categories.size() > 0
+        && request.resource.data.categories.size() <= 100;
+    }
+  }
+}

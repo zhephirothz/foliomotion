@@ -1,0 +1,30 @@
+# Dependencies and build output
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+artifacts/
+
+# Local environment and secrets
+.env*
+!.env.example
+*.local
+*-service-account*.json
+service-account*.json
+
+# Firebase local state, emulator exports, and debug logs
+.firebase/
+firebase-export*/
+firebase-debug.log
+firebase-debug.*.log
+firestore-debug.log
+ui-debug.log
+
+# Test and tool output
+playwright-report/
+test-results/
+
+# Logs and operating-system files
+*.log
+.DS_Store
+Thumbs.db

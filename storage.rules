@@ -1,0 +1,11 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /users/{uid}/projects/{projectId}/attachments/{attachmentId} {
+      allow read, delete: if request.auth != null && request.auth.uid == uid && request.auth.token.firebase.sign_in_provider != 'anonymous';
+      allow create, update: if request.auth != null && request.auth.uid == uid && request.auth.token.firebase.sign_in_provider != 'anonymous'
+        && request.resource.size <= 20 * 1024 * 1024
+        && request.resource.contentType.matches('image/(png|jpeg|webp)');
+    }
+  }
+}
