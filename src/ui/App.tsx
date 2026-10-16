@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Player } from '@remotion/player';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Player, type PlayerRef } from '@remotion/player';
 import {
   ArrowDownToLine,
   ArrowUpRight,
@@ -23,15 +23,19 @@ import {
   X,
 } from 'lucide-react';
 import { ProjectFilm } from '../ProjectFilm';
+import { paletteContrastRatio, paletteFromPreset, palettePresets, resolveSlidePalette } from '../slidePalette';
 import {
   calculateFilmTiming,
   generateLayout,
   hashStringToSeed,
   initialCategories,
   initialProject,
+  projectVideoOrientation,
+  videoProfiles,
   type CategoryItem,
   type Project,
   type ProjectScreenshot,
+  type VideoOrientation,
 } from '../types';
 import { defaultConnections, type AIConnection } from '../aiProviders';
 import { AISettings } from './AISettings';
@@ -42,8 +46,6 @@ import './app-author.css';
 
 type Page = 'studio' | 'portfolio' | 'settings';
 const FPS = 30;
-const WIDTH = 1920;
-const HEIGHT = 1080;
 const MAX_SCREENSHOTS = 10;
 const AI_SETTINGS_KEY = 'folio-motion-local-ai-v1';
 const CONNECTIONS_KEY = 'folio-motion-ai-connections-v1';
@@ -87,8 +89,14 @@ export default function App() {
 
   const [hydrated, setHydrated] = useState(false);
   const project = projects.find((item) => item.id === activeProjectId)?.project ?? initialProject;
+  const orientation = projectVideoOrientation(project);
+  const videoProfile = videoProfiles[orientation];
   const [rendering, setRendering] = useState(false);
   const [renderProgress, setRenderProgress] = useState(0);
+  const playerRef = useRef<PlayerRef>(null);
+  const screenshotCardRefs = useRef(new Map<string, HTMLDivElement>());
+  const uploadFieldRef = useRef<HTMLDivElement>(null);
+  const [previewFrame, setPreviewFrame] = useState(0);
   const [message, setMessage] = useState('');
   const [suggested, setSuggested] = useState(false);
   const [connections, setConnections] = useState<AIConnection[]>(defaultConnections);
@@ -105,6 +113,38 @@ export default function App() {
   );
   const totalDurationInFrames = timing.totalFrames;
   const totalDurationSeconds = timing.totalSeconds;
+  const activeSceneIndex = timing.scenes.reduce(
+    (activeIndex, scene) => previewFrame >= scene.startFrame ? scene.index : activeIndex,
+    0
+  );
+
+  const jumpToScene = (scene: (typeof timing.scenes)[number]) => {
+    const frame = Math.min(scene.startFrame + 7, scene.startFrame + scene.durationInFrames - 1);
+    playerRef.current?.seekTo(frame);
+    setPreviewFrame(frame);
+
+    const editorSection = screenshotCardRefs.current.get(scene.id) ?? uploadFieldRef.current;
+    if (!editorSection) return;
+    editorSection.scrollIntoView({
+      behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+      block: 'start',
+    });
+    editorSection.focus({ preventScroll: true });
+  };
+
+  useEffect(() => {
+    if (page !== 'studio') return;
+    const player = playerRef.current;
+    if (!player) return;
+    const onTimeUpdate = (event: { detail: { frame: number } }) => setPreviewFrame(event.detail.frame);
+    player.addEventListener('seeked', onTimeUpdate);
+    player.addEventListener('timeupdate', onTimeUpdate);
+    setPreviewFrame(player.getCurrentFrame());
+    return () => {
+      player.removeEventListener('seeked', onTimeUpdate);
+      player.removeEventListener('timeupdate', onTimeUpdate);
+    };
+  }, [page, activeProjectId, orientation]);
 
 
   useEffect(() => {
@@ -295,6 +335,7 @@ export default function App() {
         caption: '',
         summary: '',
         category: '',
+        showCategory: true,
         layoutSeed: randomSeed,
       };
       setProjects((current) =>
@@ -355,8 +396,8 @@ export default function App() {
       const { canRenderMediaOnWeb, renderMediaOnWeb } = await import('@remotion/web-renderer');
       let chosenBitrate: 'very-high' | 'high' | undefined = 'very-high';
       let support = await canRenderMediaOnWeb({
-        width: WIDTH,
-        height: HEIGHT,
+        width: videoProfile.width,
+        height: videoProfile.height,
         container: 'mp4',
         videoCodec: 'h264',
         videoBitrate: chosenBitrate,
@@ -364,8 +405,8 @@ export default function App() {
       if (!support.canRender) {
         chosenBitrate = 'high';
         support = await canRenderMediaOnWeb({
-          width: WIDTH,
-          height: HEIGHT,
+          width: videoProfile.width,
+          height: videoProfile.height,
           container: 'mp4',
           videoCodec: 'h264',
           videoBitrate: chosenBitrate,
@@ -373,7 +414,7 @@ export default function App() {
       }
       if (!support.canRender) {
         chosenBitrate = undefined;
-        support = await canRenderMediaOnWeb({ width: WIDTH, height: HEIGHT, container: 'mp4', videoCodec: 'h264' });
+        support = await canRenderMediaOnWeb({ width: videoProfile.width, height: videoProfile.height, container: 'mp4', videoCodec: 'h264' });
       }
       if (!support.canRender) {
         throw new Error(
@@ -389,8 +430,8 @@ export default function App() {
           component: ProjectFilm,
           durationInFrames: totalDurationInFrames,
           fps: FPS,
-          width: WIDTH,
-          height: HEIGHT,
+          width: videoProfile.width,
+          height: videoProfile.height,
           calculateMetadata: null,
           defaultProps: { project },
         },
@@ -408,7 +449,7 @@ export default function App() {
       link.download = `${(project.name || 'portfolio-film')
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
-        .replace(/(^-|-$)/g, '')}-${totalDurationSeconds.toFixed(1)}s.mp4`;
+        .replace(/(^-|-$)/g, '')}-${orientation.replace(':', 'x')}-${totalDurationSeconds.toFixed(1)}s.mp4`;
       link.click();
       window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
       setMessage(t('exportReady', { time: totalDurationSeconds.toFixed(1) }));
@@ -572,7 +613,7 @@ export default function App() {
                 <div>
                   {t('dynamicFilm')}
                   <br />
-                  <b>{totalDurationSeconds.toFixed(1)} {t('secRatio')}</b>
+                  <b>{totalDurationSeconds.toFixed(1)} {t('secondsShort')} · {orientation}</b>
                   <br />
                   {project.screenshots.length} {t('imagesCount')}
                 </div>
@@ -592,16 +633,18 @@ export default function App() {
                     <span>
                       <i /> {t('live')} · {totalDurationSeconds.toFixed(1)}{lang === 'th' ? 'วิ' : 's'}
                     </span>
-                    <span>1920 × 1080</span>
+                    <span>{videoProfile.width} × {videoProfile.height} · {orientation}</span>
                   </div>
                 </div>
-                <div className="player-wrap">
+                <div className={`player-wrap player-wrap-${orientation.replace(':', '-')}`}>
                   <Player
+                    key={`${activeProjectId}-${orientation}`}
+                    ref={playerRef}
                     component={ProjectFilm}
                     inputProps={{ project }}
                     durationInFrames={totalDurationInFrames}
-                    compositionWidth={WIDTH}
-                    compositionHeight={HEIGHT}
+                    compositionWidth={videoProfile.width}
+                    compositionHeight={videoProfile.height}
                     fps={FPS}
                     controls
                     loop
@@ -614,6 +657,7 @@ export default function App() {
                     </div>
                   )}
                 </div>
+
                 <div className="timeline-card">
                   <div className="timeline-head">
                     <div>
@@ -621,6 +665,7 @@ export default function App() {
                       <b>
                         {timing.scenes.length} {lang === 'th' ? 'ฉาก' : timing.scenes.length === 1 ? 'scene' : 'scenes'} <i>·</i> {totalDurationSeconds.toFixed(1)} {lang === 'th' ? 'วินาที' : 'seconds'}
                       </b>
+                      <small className="timeline-hint">{t('timelineJumpHint')}</small>
                     </div>
                     <div className="timeline-actions">
                       {project.screenshots.length > 0 && (
@@ -638,7 +683,14 @@ export default function App() {
                       const startSec = (scene.startFrame / FPS).toFixed(1);
                       const endSec = ((scene.startFrame + scene.durationInFrames) / FPS).toFixed(1);
                       return (
-                        <div key={scene.id} className="scene">
+                        <button
+                          type="button"
+                          key={scene.id}
+                          className={`scene ${activeSceneIndex === scene.index ? 'active-scene' : ''}`}
+                          aria-label={t(scene.screenshot ? 'jumpToSlide' : 'jumpToSampleSlide', { number: scene.index + 1 })}
+                          aria-current={activeSceneIndex === scene.index ? 'step' : undefined}
+                          onClick={() => jumpToScene(scene)}
+                        >
                           <span className="scene-no">{String(scene.index + 1).padStart(2, '0')}</span>
                           <div
                             className="scene-thumb"
@@ -655,7 +707,7 @@ export default function App() {
                               {scene.category.toUpperCase()} · {scene.layout.label.toUpperCase()}
                             </span>
                           </div>
-                        </div>
+                        </button>
                       );
                     })}
                   </div>
@@ -732,6 +784,19 @@ export default function App() {
                   />
                 </div>
 
+                <div className="field orientation-field">
+                  <label htmlFor="project-orientation">{t('videoOrientation')}</label>
+                  <div className="select-wrap">
+                    <select id="project-orientation" value={orientation} disabled={rendering} onChange={(e) => update('orientation', e.target.value as VideoOrientation)}>
+                      <option value="16:9">{t('landscapeFormat')}</option>
+                      <option value="9:16">{t('portraitFormat')}</option>
+                      <option value="1:1">{t('squareFormat')}</option>
+                    </select>
+                    <ChevronDown size={15} />
+                  </div>
+                  <small className="settings-hint">{t('orientationHint')}</small>
+                </div>
+
                 {/* Project Category with Master Data */}
                 <div className="field">
                   <div className="field-label-row">
@@ -775,7 +840,7 @@ export default function App() {
                 </section>
 
                 {/* DYNAMIC SCREENSHOTS & SCENES SECTION */}
-                <div className="field upload-field">
+                <div className="field upload-field" ref={uploadFieldRef} tabIndex={-1}>
                   <div className="screenshot-heading">
                     <div className="screenshot-heading-title">
                       <span>{t('screenshotsHeading')}</span>
@@ -801,12 +866,21 @@ export default function App() {
                   <div className="screenshot-list">
                     {project.screenshots.map((shot, index) => {
                       const dur = shot.durationSeconds ?? 2.0;
+                      const palette = resolveSlidePalette(shot.palette);
                       const sceneLayout =
                         timing.scenes.find((s) => s.id === shot.id)?.layout ??
                         generateLayout(shot.layoutSeed ?? hashStringToSeed(shot.id), index);
 
                       return (
-                        <div className="screenshot-card" key={shot.id}>
+                        <div
+                          className="screenshot-card"
+                          key={shot.id}
+                          tabIndex={-1}
+                          ref={(node) => {
+                            if (node) screenshotCardRefs.current.set(shot.id, node);
+                            else screenshotCardRefs.current.delete(shot.id);
+                          }}
+                        >
                           <div className="screenshot-card-header">
                             <div className="screenshot-card-title">
                               <span className="screenshot-card-index">{String(index + 1).padStart(2, '0')}</span>
@@ -919,6 +993,62 @@ export default function App() {
                                   </select>
                                   <ChevronDown size={14} />
                                 </div>
+                                <label className="slide-category-visibility" htmlFor={`show-category-${shot.id}`}>
+                                  <input
+                                    id={`show-category-${shot.id}`}
+                                    type="checkbox"
+                                    checked={shot.showCategory !== false}
+                                    onChange={(e) => updateScreenshot(shot.id, { showCategory: e.target.checked })}
+                                  />
+                                  <span>{t('showCategoryOnSlide')}</span>
+                                </label>
+                              </div>
+
+                              <div className="control-group slide-palette-control">
+                                <div className="control-label-row">
+                                  <label>{t('slidePalette')}</label>
+                                </div>
+                                <p className="slide-palette-help">{t('slidePaletteHelp')}</p>
+                                <div className="palette-presets" role="group" aria-label={t('palettePresets')}>
+                                  {palettePresets.map((preset) => (
+                                    <button
+                                      type="button"
+                                      key={preset.id}
+                                      className={`palette-preset ${palette.presetId === preset.id ? 'active' : ''}`}
+                                      aria-pressed={palette.presetId === preset.id}
+                                      aria-label={`${lang === 'th' ? preset.nameTh : preset.nameEn} · ${t('palettePresets')}`}
+                                      onClick={() => updateScreenshot(shot.id, { palette: paletteFromPreset(preset.id) })}
+                                    >
+                                      <span className="palette-preset-preview" style={{ background: preset.canvas, color: preset.text }}>
+                                        <span className="palette-preset-frame" style={{ background: preset.frame }} />
+                                        <span className="palette-preset-accent" style={{ background: preset.accent }} />
+                                      </span>
+                                      <span className="palette-preset-name">{lang === 'th' ? preset.nameTh : preset.nameEn}</span>
+                                    </button>
+                                  ))}
+                                </div>
+                                <details className="palette-customize">
+                                  <summary>{t('customizeSlidePalette')}{palette.presetId === 'custom' && <span className="palette-custom-tag">{t('customPalette')}</span>}</summary>
+                                  <div className="palette-color-grid">
+                                    {(['canvas', 'text', 'accent', 'frame'] as const).map((colorKey) => (
+                                      <label className="palette-color-field" key={colorKey}>
+                                        <span>{t({ canvas: 'paletteCanvas', text: 'paletteText', accent: 'paletteAccent', frame: 'paletteFrame' }[colorKey] as TranslationKey)}</span>
+                                        <span className="palette-color-value">
+                                          <input
+                                            type="color"
+                                            value={palette[colorKey]}
+                                            aria-label={t({ canvas: 'paletteCanvas', text: 'paletteText', accent: 'paletteAccent', frame: 'paletteFrame' }[colorKey] as TranslationKey)}
+                                            onInput={(e) => updateScreenshot(shot.id, { palette: { ...palette, presetId: 'custom', [colorKey]: e.currentTarget.value } })}
+                                          />
+                                          <code>{palette[colorKey].toUpperCase()}</code>
+                                        </span>
+                                      </label>
+                                    ))}
+                                  </div>
+                                </details>
+                                {paletteContrastRatio(palette.text, palette.canvas) < 4.5 && (
+                                  <p className="palette-contrast-warning" role="status">{t('paletteContrastWarning')}</p>
+                                )}
                               </div>
 
                               {/* Per-image Headline */}
@@ -953,6 +1083,7 @@ export default function App() {
                                   value={shot.summary ?? shot.description ?? ''}
                                   onChange={(e) => updateScreenshot(shot.id, { summary: e.target.value, description: e.target.value })}
                                 />
+                                <small className="slide-summary-hint">{t('slideSummaryHint')}</small>
                               </div>
 
                               <SlideCaptionAssistant
@@ -965,7 +1096,6 @@ export default function App() {
                                 connection={projectConnection}
                                 token={projectConnection ? sessions[projectConnection.id] : undefined}
                                 lang={lang}
-                                onDescription={(description) => updateScreenshot(shot.id, { description, summary: description })}
                                 onAccept={(caption) => updateScreenshot(shot.id, { caption })}
                               />
 
@@ -1077,13 +1207,14 @@ export default function App() {
                   {String(timing.scenes.length).padStart(2, '0')} {lang === 'th' ? 'ฉาก' : timing.scenes.length === 1 ? 'SCENE' : 'SCENES'} · {totalDurationSeconds.toFixed(1)}{lang === 'th' ? 'วิ' : 'S'}
                 </span>
               </div>
-              <div className="portfolio-player">
+              <div className={`portfolio-player portfolio-player-${orientation.replace(':', '-')}`}>
                 <Player
+                  key={`${activeProjectId}-${orientation}`}
                   component={ProjectFilm}
                   inputProps={{ project }}
                   durationInFrames={totalDurationInFrames}
-                  compositionWidth={WIDTH}
-                  compositionHeight={HEIGHT}
+                  compositionWidth={videoProfile.width}
+                  compositionHeight={videoProfile.height}
                   fps={FPS}
                   controls
                   loop

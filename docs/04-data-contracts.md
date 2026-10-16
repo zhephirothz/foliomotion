@@ -34,7 +34,11 @@ Use an explicit distinction between marketing overlay text, narration script, an
 
 ## Timing and output profile
 
-Output profile contains width, height, fps, format/codec settings, safe areas, and template compatibility. Start with 1920×1080 at 30 fps. Add 1080×1920 after creating a dedicated portrait layout. A portrait export is not just a center-cropped landscape export.
+The local studio now stores a video orientation on each project: 16:9 (1920×1080), 9:16 (1080×1920), or 1:1 (1080×1080), all at 30 fps. Existing projects without the field remain 16:9. Preview and browser export use the same profile and composition; portrait and square stack text and contained screenshots instead of cropping the landscape frame. A future hosted output profile may additionally contain codec settings, safe areas, and template compatibility metadata.
+
+Each screenshot can override the project category and has a `showCategory` visibility flag. The current film shows that category as a readable label in the text area for every layout and format when enabled. New and existing screenshots default to visible; switching the flag off hides only the category label in that screenshot's video scene. The category value remains editable for later reuse.
+
+Each screenshot may also store a `palette` with a preset ID and four six-digit hex colors: canvas, text, accent, and frame. The film planner resolves absent palettes to Studio Lime for older projects and validates saved colors before they reach the composition. Preset selection replaces that screenshot's colors; editing one color marks the set as custom. Other screenshots keep their own palettes. The browser workspace persists the palette alongside screenshot metadata, while preview and export consume the same resolved scene palette.
 
 For overlapping transitions, calculate scene start times cumulatively, subtracting the previous transition overlap. Each overlap must fit within both adjacent scenes, and incoming plus outgoing overlap must leave the scene's required readable hold. Hard cuts have zero overlap. Round timing to integer frames once in the planner and share the resolved values everywhere.
 

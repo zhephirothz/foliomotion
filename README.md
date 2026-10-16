@@ -49,8 +49,9 @@ After building, `bun run preview` prints its local URL. Stop a running server wi
 
 1. Add a project and enter its name, opening line, summary, role, and category.
 2. Add screenshots one at a time. Each project supports up to ten PNG, JPEG, or WebP screenshots, up to 20 MB each.
-3. Describe what you personally built or contributed on each screenshot. Edit each headline and arrange the order, timing, and layout.
-4. Use the live preview to review the sequence, then choose **Export film** to download an MP4.
+3. Describe what you personally built or contributed on each screenshot. Edit each headline and arrange the order, timing, and layout. Choose a category per screenshot and use **Show category in this slide’s video** to display or hide its label. Pick one of five slide color palettes or customize the canvas, text, accent, and screenshot frame colors per screenshot.
+4. Choose **Video format** in the project details: 16:9 landscape, 9:16 portrait, or 1:1 square. Switching formats keeps your slide content and automatically rearranges its layout.
+5. Select a numbered scene card in **Film structure** to jump to that slide in both the live preview and its editing card. Review the sequence, then choose **Export film** to download an MP4 in the selected format.
 
 Manual editing, preview, and export work without AI credentials. The browser exporter needs supported WebCodecs/MP4 capabilities; use a recent Chrome or Chromium browser if export is unavailable. Remotion's browser renderer sends its documented render telemetry.
 

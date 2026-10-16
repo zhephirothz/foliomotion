@@ -6,7 +6,7 @@ The product is now free to use without an account or project-count tier. Project
 
 ## Current status
 
-The local prototype is implemented. It has a six-scene Remotion composition, live Player, unlimited local projects, editable project name/headline/summary/role/category, ordered PNG/JPEG/WebP screenshot uploads (up to ten per project, 20 MB each), IndexedDB workspace and asset persistence, a portfolio preview surface with a selectable work index, caption drafting from typed notes, and client-side MP4 export for supported browsers. There is no hosted project backend or publication service. Optional hosted inference runs through the local AI gateway.
+The local prototype is implemented. It has a Remotion composition, live Player, unlimited local projects, editable project name/headline/summary/role/category and video format (16:9, 9:16, or 1:1), ordered PNG/JPEG/WebP screenshot uploads (up to ten per project, 20 MB each), per-screenshot category visibility and color palettes, IndexedDB workspace and asset persistence, a portfolio preview surface with a selectable work index, caption drafting from typed notes, and client-side MP4 export for supported browsers. Portrait and square formats use dedicated stacked layouts while preserving the same slide content. There is no hosted project backend or publication service. Optional hosted inference runs through the local AI gateway.
 
 Dependencies are managed with Bun and pinned to Remotion 4.0.535 across the Remotion packages. `bun run build` is the production build command. No exported MP4 has yet been generated or played through. The browser UI was opened and visually inspected; the first-frame blank issue was fixed, and displayed scene timings were aligned with composition cuts. The build reports a large lazy-loaded WebCodecs/encoder chunk warning. No model/provider or upstream Remotion skills were installed.
 
@@ -40,6 +40,8 @@ A project stores an ordered list of screenshots. The creator adds them one at a 
 ## Studio design update
 
 The studio uses a consolidated, readable stylesheet rather than layered font-size overrides. Form inputs are 16px, primary controls have at least 46px height, and the project editor has more horizontal space. Wide screens keep the preview visible alongside the form. At 1250px and below, the preview and form stack; at 760px and below, navigation moves above the workspace and project switching remains available. Scene cards use three columns, dropping to two on the smallest screens. Local AI settings retain LM Studio as the default and expose their expanded state to assistive technology.
+
+Film structure scene cards now show larger scene numbers and act as keyboard-accessible seek controls for the local Player. Selecting a card seeks slightly past that scene's entrance animation and scrolls the matching screenshot editing card into view on the right. The editor card's number is enlarged and receives focus after the jump. Sample scenes without an attached screenshot jump to the upload area. The active scene card follows Player seeks and playback. This changes studio navigation only, not film timing or export.
 
 The production build passes. Dynamic timing, alignment variations, and per-image editing controls were verified.
 

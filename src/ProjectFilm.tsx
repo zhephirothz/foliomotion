@@ -1,8 +1,6 @@
 import { AbsoluteFill, Img, interpolate, useCurrentFrame } from 'remotion';
-import { calculateFilmTiming, type Project } from './types';
-
-const ink = '#1e211e';
-const lime = '#d6ff61';
+import { calculateFilmTiming, projectVideoOrientation, type Project } from './types';
+import { readableTextOn } from './slidePalette';
 
 function DemoInterface() {
   return (
@@ -73,6 +71,9 @@ function DemoInterface() {
 
 export function ProjectFilm({ project }: { project: Project }) {
   const frame = useCurrentFrame();
+  const orientation = projectVideoOrientation(project);
+  const portrait = orientation === '9:16';
+  const square = orientation === '1:1';
   const timing = calculateFilmTiming(project.screenshots, 30, project.category);
   const { scenes, totalFrames } = timing;
 
@@ -116,10 +117,14 @@ export function ProjectFilm({ project }: { project: Project }) {
           ? 'Let’s make the next one matter.'
           : project.summary.trim() || 'A closer look at the thinking behind the interface.')
       : '');
+  const denseSquareCopy = square && caption.length + subcaption.length > 180;
 
   const badgeLabel = isFinalScene ? 'GET IN TOUCH ↗' : role.toUpperCase();
   const screenshotSrc = currentScene.screenshot?.src;
   const layout = currentScene.layout;
+  const { canvas, text, accent, frame: frameColor } = currentScene.palette;
+  const onAccent = readableTextOn(accent);
+  const onText = readableTextOn(text);
 
   const renderMedia = (extraStyle?: React.CSSProperties, innerAspectRatio = '16/10') => {
     return (
@@ -127,7 +132,7 @@ export function ProjectFilm({ project }: { project: Project }) {
         style={{
           position: 'relative',
           width: '100%',
-          transform: `translate(${layout.cardOffsetX}px, ${layout.cardOffsetY}px) rotate(${layout.cardRotation}deg) scale(${layout.cardScale})`,
+          transform: `translate(${portrait || square ? layout.cardOffsetX * 0.4 : layout.cardOffsetX}px, ${portrait || square ? layout.cardOffsetY * 0.4 : layout.cardOffsetY}px) rotate(${portrait || square ? layout.cardRotation * 0.5 : layout.cardRotation}deg) scale(${portrait || square ? 1 : layout.cardScale})`,
           transformOrigin: 'center center',
           ...extraStyle,
         }}
@@ -138,10 +143,10 @@ export function ProjectFilm({ project }: { project: Project }) {
               position: 'absolute',
               inset: -8,
               borderRadius: 18,
-              background: 'linear-gradient(135deg, #e4eadb, #ced8c4)',
+              background: `linear-gradient(135deg, ${frameColor}, ${canvas})`,
               transform: `rotate(${layout.backingRotation}deg)`,
               zIndex: 0,
-              border: '1px solid #c2ceb8',
+              border: `1px solid ${text}33`,
               boxShadow: '0 8px 24px rgba(37,41,34,0.06)',
             }}
           />
@@ -153,13 +158,13 @@ export function ProjectFilm({ project }: { project: Project }) {
             zIndex: 1,
             width: '100%',
             aspectRatio: innerAspectRatio,
-            background: 'white',
+            background: frameColor,
             padding: 12,
             borderRadius: 14,
             boxShadow: layout.cardShadow,
             overflow: 'hidden',
             boxSizing: 'border-box',
-            border: '1px solid #dce4d5',
+            border: `1px solid ${text}22`,
           }}
         >
           {screenshotSrc ? (
@@ -185,8 +190,8 @@ export function ProjectFilm({ project }: { project: Project }) {
                 position: 'absolute',
                 top: 20,
                 right: 20,
-                background: '#22281fee',
-                color: '#d6ff61',
+                background: text,
+                color: onText,
                 fontSize: 10,
                 letterSpacing: '.14em',
                 padding: '5px 9px',
@@ -195,7 +200,7 @@ export function ProjectFilm({ project }: { project: Project }) {
                 fontFamily: 'monospace',
               }}
             >
-              0{currentScene.index + 1} · {currentScene.category.toUpperCase()}
+              0{currentScene.index + 1}
             </div>
           )}
         </div>
@@ -205,18 +210,39 @@ export function ProjectFilm({ project }: { project: Project }) {
 
   const renderText = (align: 'left' | 'center' = 'left') => (
     <div style={{ textAlign: align }}>
-      <div style={{ color: '#81877a', fontSize: 17, letterSpacing: '.16em', marginBottom: caption || subcaption ? 25 : 0 }}>
+      {currentScene.showCategory && (
+        <div style={{ marginBottom: portrait ? 22 : square ? 12 : 20 }}>
+          <span style={{
+            display: 'inline-block',
+            maxWidth: '100%',
+            boxSizing: 'border-box',
+            padding: portrait ? '11px 19px' : square ? '7px 13px' : '9px 17px',
+            borderRadius: 8,
+            background: text,
+            color: onText,
+            fontSize: portrait ? 26 : square ? 20 : 22,
+            fontWeight: 700,
+            letterSpacing: '.06em',
+            lineHeight: 1.25,
+            overflowWrap: 'anywhere',
+          }}>
+            {currentScene.category.toUpperCase()}
+          </span>
+        </div>
+      )}
+      <div style={{ color: text, opacity: 0.68, fontSize: portrait ? 22 : denseSquareCopy ? 16 : square ? 19 : 17, letterSpacing: '.12em', marginBottom: caption || subcaption ? (denseSquareCopy ? 10 : portrait || square ? 16 : 25) : 0, overflowWrap: 'anywhere' }}>
         0{currentScene.index + 1} / 0{scenes.length}　·　{projectName.toUpperCase()}
       </div>
       {caption ? (
         <div
           style={{
-            fontSize: 'clamp(44px, 6.5vw, 114px)',
+            fontSize: portrait ? (caption.length > 55 ? 54 : caption.length > 34 ? 64 : 78) : square ? (denseSquareCopy ? 40 : caption.length > 55 ? 46 : caption.length > 34 ? 54 : 66) : 'clamp(44px, 6.5vw, 114px)',
             fontWeight: 600,
-            letterSpacing: '-.07em',
-            lineHeight: 0.95,
-            maxWidth: align === 'center' ? 1200 : 850,
+            letterSpacing: portrait || square ? '-.035em' : '-.07em',
+            lineHeight: portrait || square ? 1.08 : 0.95,
+            maxWidth: portrait || square ? '100%' : align === 'center' ? 1200 : 850,
             margin: align === 'center' ? '0 auto' : undefined,
+            overflowWrap: 'anywhere',
           }}
         >
           {caption}
@@ -225,12 +251,14 @@ export function ProjectFilm({ project }: { project: Project }) {
       {subcaption ? (
         <div
           style={{
-            marginTop: caption ? 26 : 0,
-            maxWidth: align === 'center' ? 800 : 640,
+            marginTop: caption ? (denseSquareCopy ? 10 : portrait || square ? 16 : 26) : 0,
+            maxWidth: portrait || square ? '100%' : align === 'center' ? 800 : 640,
             marginInline: align === 'center' ? 'auto' : undefined,
-            fontSize: 22,
+            fontSize: portrait ? 27 : denseSquareCopy ? 19 : square ? 22 : 22,
             lineHeight: 1.35,
-            color: '#72766e',
+            color: text,
+            opacity: 0.75,
+            overflowWrap: 'anywhere',
           }}
         >
           {subcaption}
@@ -238,11 +266,12 @@ export function ProjectFilm({ project }: { project: Project }) {
       ) : null}
       <div
         style={{
-          marginTop: caption || subcaption ? 40 : 20,
+          marginTop: caption || subcaption ? (denseSquareCopy ? 14 : portrait || square ? 24 : 40) : 20,
           display: 'inline-flex',
           alignItems: 'center',
           gap: 13,
-          background: lime,
+          background: accent,
+          color: onAccent,
           borderRadius: 30,
           padding: '13px 20px',
           fontSize: 15,
@@ -255,6 +284,16 @@ export function ProjectFilm({ project }: { project: Project }) {
   );
 
   const renderLayout = () => {
+    if (portrait || square) {
+      const mediaFirst = square && (layout.variant === 'editorial-left' || layout.variant === 'staggered-focus');
+      const media = <div style={{ width: portrait ? '94%' : denseSquareCopy ? '65%' : '78%', marginInline: 'auto', flexShrink: 0 }}>{renderMedia({}, '16/10')}</div>;
+      const text = <div style={{ width: '100%', flexShrink: 0 }}>{renderText(layout.textAlign)}</div>;
+      return (
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: portrait ? 70 : 30, minHeight: 0, opacity: fade, transform: `translateY(${enter}px)` }}>
+          {mediaFirst ? <>{media}{text}</> : <>{text}{media}</>}
+        </div>
+      );
+    }
     switch (layout.variant) {
       case 'editorial-left':
         return (
@@ -347,11 +386,11 @@ export function ProjectFilm({ project }: { project: Project }) {
   };
 
   return (
-    <AbsoluteFill style={{ backgroundColor: '#f3f1ed', color: ink, overflow: 'hidden', fontFamily: 'Arial, sans-serif' }}>
+    <AbsoluteFill style={{ backgroundColor: canvas, color: text, overflow: 'hidden', fontFamily: 'Arial, sans-serif' }}>
       <div style={{ position: 'absolute', inset: '6.5%', display: 'flex', flexDirection: 'column' }}>
         {renderLayout()}
       </div>
-      <div style={{ position: 'absolute', left: 0, bottom: 0, width: `${progress}%`, height: 6, background: lime }} />
+      <div style={{ position: 'absolute', left: 0, bottom: 0, width: `${progress}%`, height: 6, background: accent }} />
     </AbsoluteFill>
   );
 }

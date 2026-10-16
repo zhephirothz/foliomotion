@@ -263,6 +263,7 @@ test('calculateFilmTiming: slide-specific category override and project category
       src: 'blob:1',
       durationSeconds: 2.0,
       category: 'Brand & identity', // Explicit slide override
+      showCategory: false,
     },
     {
       id: 'shot-2',
@@ -291,9 +292,12 @@ test('calculateFilmTiming: slide-specific category override and project category
   const resultWithProjectCat = calculateFilmTiming(screenshots, 30, 'Digital product');
   assert.equal(resultWithProjectCat.scenes.length, 4);
   assert.equal(resultWithProjectCat.scenes[0].category, 'Brand & identity');
+  assert.equal(resultWithProjectCat.scenes[0].showCategory, false);
   assert.equal(resultWithProjectCat.scenes[1].category, 'Digital product');
+  assert.equal(resultWithProjectCat.scenes[1].showCategory, true);
   assert.equal(resultWithProjectCat.scenes[2].category, 'Digital product');
   assert.equal(resultWithProjectCat.scenes[3].category, 'Web experience');
+  assert.equal(resultWithProjectCat.scenes[3].showCategory, true);
 
   // Test with empty project category fallback -> defaults to 'Selected work'
   const resultWithoutProjectCat = calculateFilmTiming(screenshots, 30, '');

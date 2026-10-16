@@ -25,6 +25,8 @@ If only one screenshot exists, use a full-screen view and meaningful detail crop
 
 Begin with one template provisionally called **Project Spotlight**: neutral background, one accent color, large title, crisp screenshot framing, and small role/category labels. Support a light and dark token set only if both receive visual review. Choose actual branding after seeing real projects.
 
+The implemented studio now offers five per-screenshot color presets (Studio Lime, Midnight, Editorial Rose, Cobalt, Moss) and four editable colors: canvas, text, accent, and screenshot frame. Existing slides use Studio Lime. The same resolved palette travels with each scene into the shared Remotion composition for preview and export. Custom text/canvas combinations below a 4.5:1 contrast ratio receive a warning in the editor; the creator should review the actual slide, especially with long copy and in portrait or square format. Preset selection resets that slide's custom colors.
+
 Reusable scene primitives should include screenshot stage, headline block, feature callout, contribution list, optional evidence card, and end card. Keep scene content separate from appearance. Store typography scale, spacing, radii, color, and motion values in a template-level design system.
 
 ## Copy rules

@@ -1,4 +1,17 @@
+import { resolveSlidePalette, type SlidePalette } from './slidePalette.ts';
+
 export type SlideAlignment = 'left' | 'right' | 'center' | 'tilted-left' | 'tilted-right';
+export type VideoOrientation = '16:9' | '9:16' | '1:1';
+
+export const videoProfiles: Record<VideoOrientation, { width: number; height: number; label: string }> = {
+  '16:9': { width: 1920, height: 1080, label: 'Landscape' },
+  '9:16': { width: 1080, height: 1920, label: 'Portrait' },
+  '1:1': { width: 1080, height: 1080, label: 'Square' },
+};
+
+export function projectVideoOrientation(project: Pick<Project, 'orientation'>): VideoOrientation {
+  return project.orientation && Object.hasOwn(videoProfiles, project.orientation) ? project.orientation : '16:9';
+}
 
 export type LayoutVariant =
   | 'editorial-right'
@@ -46,11 +59,14 @@ export type ProjectScreenshot = {
   summary?: string;
   description?: string;
   category?: string;
+  showCategory?: boolean;
+  palette?: SlidePalette;
   alignment?: SlideAlignment;
   layoutSeed?: number;
 };
 
 export type Project = {
+  orientation?: VideoOrientation;
   name: string;
   headline: string;
   summary: string;
@@ -70,6 +86,8 @@ export type FilmScene = {
   caption: string;
   summary: string;
   category: string;
+  showCategory: boolean;
+  palette: SlidePalette;
   alignment: SlideAlignment;
   layout: GeneratedLayout;
   screenshot: ProjectScreenshot | null;
@@ -237,6 +255,8 @@ export function calculateFilmTiming(
           caption: sampleCaptions[i],
           summary: sampleSummaries[i],
           category: sampleCategories[i] || fallbackCat,
+          showCategory: true,
+          palette: resolveSlidePalette(),
           alignment: sampleAlignments[i],
           layout,
           screenshot: null,
@@ -282,6 +302,8 @@ export function calculateFilmTiming(
       caption: shot.caption || '',
       summary: resolvedSummary,
       category: resolvedCategory,
+      showCategory: shot.showCategory !== false,
+      palette: resolveSlidePalette(shot.palette),
       alignment,
       layout,
       screenshot: shot,
@@ -296,6 +318,7 @@ export function calculateFilmTiming(
 }
 
 export const initialProject: Project = {
+  orientation: '16:9',
   name: 'Your next project',
   headline: 'A little more than a screenshot.',
   summary: 'Show what you made, how you made it, and why it matters.',
